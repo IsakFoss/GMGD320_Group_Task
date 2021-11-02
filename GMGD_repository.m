@@ -6,10 +6,8 @@ abcd = a + b + c + d;
 
 abcd
 
-
+% Isak skriver en novelle:
 dsflgjødøfklgjsdfgølkjdsfgd
 
-
-
-
 sdfgsdfwerweffsdq
+
