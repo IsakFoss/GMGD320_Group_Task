@@ -7,11 +7,11 @@
 % Store current directory
 current_dir = pwd;
 
-readRinexObs304_dirpath = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\MATLAB\GNSS_reading_protocol\readRinexObs304\readRinexObs304_sourcecode";
+%readRinexObs304_dirpath = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\MATLAB\GNSS_reading_protocol\readRinexObs304\readRinexObs304_sourcecode";
 
 %data dir relative to readRinexObs304_dirpath 
 %data_dir   = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\New Folder\DATA\Topcon\Topcon";
-data_dir = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\New Folder\DATA\reach_raw_202110280857_RINEX_3_03 (1)";
+data_dir = "C:\Users\isakf\Documents\Geomatikk\7_2021H\GMGD320\GMGD320_Group_Task\RINEX_Rounds";
 %filename    = "320m3010.21o";
 filename    = "reach_raw_202110280857.21O";
 filename = append(data_dir, '\', filename);
@@ -19,7 +19,7 @@ filename = append(data_dir, '\', filename);
 %% read only GPS, with only code observation types and all bands. Don't read SS and LLI
 
 % changing working directory to readRinexObs304
-cd(readRinexObs304_dirpath)
+%cd(readRinexObs304_dirpath)
 
 includeAllGNSSsystems = 0;
 includeAllObsCodes = 0;
@@ -130,11 +130,16 @@ for i = 2:m
 end  
 index = sortrows(index,1);
 [n,m] =size(index);
+H = 0
 mean_table = [index(1,1),1,index(1,2),mean(all_sat(1:index(1,2),index(1,1)))];
 
 for k = 1:n-1
     % Ser om det er mer enn ett fasebrudd, beregner kun gjennomsnitt mellom
     % fasebruudd
+    if k > 1 && (index(k,1) == index(k+1,1)) && (index(k,1) ~= index(k-1,1))
+        mean_table = [mean_table;index(k,1),1,index(k,2),mean(all_sat(1:index(k,2),index(k,1)),'omitnan')]; 
+    
+    end
     if (index(k,1) == index(k+1,1))  
         mean_table = [mean_table;index(k,1),index(k,2),index(k+1,2),mean(all_sat(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
         disp(index(k,1))
@@ -143,19 +148,17 @@ for k = 1:n-1
         disp(mean(all_sat(index(k,2):index(k+1,2),index(k,1)),'omitnan'))
         disp("--------------------------------------------------")
      % Om det kun er et fasebrud isf. Beregne det et gjennomsnitt for hele serien
-     else (index(k,1) ~= index(k+1,1))
+    elseif (index(k,1) ~= index(k+1,1))
           mean_table = [mean_table;index(k,1),index(k,2),nepochs,mean(all_sat(index(k,2):nepochs,index(k,1)),'omitnan')]; 
-        disp("over 1")
     end
     
-       end
+end
     
-
-%[m,n] = size(mean_table);
-
-% 
+ 
+    
+[m,n] = size(mean_table);
 real_MP = all_sat;
 for i = 1:m
-    real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1)) = real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1)) - mean_table(i,4);
+    real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1)) = abs(real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1))) - abs(mean_table(i,4));
 end
     
