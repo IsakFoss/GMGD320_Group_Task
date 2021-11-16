@@ -15,7 +15,8 @@ data_dir = "C:\Users\isakf\Documents\Geomatikk\7_2021H\GMGD320\GMGD320_Group_Tas
 %filename    = "320m3010.21o";
 filename    = "reach_raw_202110280857.21O";
 filename = append(data_dir, '\', filename);
-
+system = ["Emlid"];
+%system = ["Topcon"];
 %% read only GPS, with only code observation types and all bands. Don't read SS and LLI
 
 % changing working directory to readRinexObs304
@@ -37,11 +38,20 @@ readSS   = 0;
 
 %% Iterate through only GPS. For the first 10 epochs, compute the linear combination L1C-L2X if both L1C and L2X are present
 
-desiredGNSS_systems = ["G"];
-phase1_code = "L1C";
-phase2_code = "L2X";
-code1_code  = "C1C";
-code2_code  = "C2X";
+if system == ["Topcon"]
+    desiredGNSS_systems = ["G"];
+    phase1_code = "L1C";
+    phase2_code = "L2W";
+    code1_code  = "C1C";
+    code2_code  = "C2W";
+end
+if system == ["Emlid"]
+    desiredGNSS_systems = ["G"];
+    phase1_code = "L1C";
+    phase2_code = "L2X";
+    code1_code  = "C1C";
+    code2_code  = "C2X";
+end
 
 c = 299792458;
 phase1_wavelength = c/(1575.42*10^6);
