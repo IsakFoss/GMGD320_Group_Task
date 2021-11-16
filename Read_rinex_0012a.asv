@@ -11,9 +11,9 @@ current_dir = pwd;
 
 %data dir relative to readRinexObs304_dirpath 
 %data_dir   = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\New Folder\DATA\Topcon\Topcon";
-%data_dir = 'C:\Users\isakf\Documents\Geomatikk\7_2021H\GMGD320\GMGD320_Group_Task\RINEX_Rounds';
-filename    = '320m3010 .21o';
-%filename    = 'reach_raw_202110210856.21O';
+data_dir = 'C:\Users\isakf\Documents\Geomatikk\7_2021H\GMGD320\GMGD320_Group_Task\RINEX_Rounds';
+%filename    = '320m3010 .21o';
+filename    = 'reach_raw_202110210856.21O';
 filename = append(pwd, '\RINEX_Rounds\', filename);
 %system = ["Emlid"];
 system = ["Topcon"];
