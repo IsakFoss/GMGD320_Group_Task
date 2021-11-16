@@ -22,9 +22,14 @@ Emlid_19 = 'reach_raw_202110191050.21O';
 Emlid_21 = 'reach_raw_202110210856.21O';
 Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
-filename = append(pwd, '\RINEX_Rounds\', filename);
-%system = ["Emlid"];
-system = ["Topcon"];
+filename = append(pwd, '\RINEX_Rounds\', Emlid_19);
+Topcon = "21o";
+if contains(filename,Topcon) == 1
+    system = "Topcon";
+else 
+    system = "Emlid" ;
+end
+
 %% read only GPS, with only code observation types and all bands. Don't read SS and LLI
 
 % changing working directory to readRinexObs304
@@ -46,7 +51,7 @@ readSS   = 0;
 
 %% Iterate through only GPS. For the first 10 epochs, compute the linear combination L1C-L2X if both L1C and L2X are present
 
-if system == ["Topcon"]
+if system == "Topcon"
     desiredGNSS_systems = ["G"];
     phase1_code = "L1C";
     phase2_code = "L2W";
@@ -54,7 +59,7 @@ if system == ["Topcon"]
     code2_code  = "C2W";
 end
 
-if system == ["Emlid"]
+if system == "Emlid"
     desiredGNSS_systems = ["G"];
     phase1_code = "L1C";
     phase2_code = "L2X";
