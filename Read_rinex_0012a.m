@@ -12,7 +12,15 @@ current_dir = pwd;
 %data dir relative to readRinexObs304_dirpath 
 %data_dir   = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\New Folder\DATA\Topcon\Topcon";
 %data_dir = 'C:\Users\isakf\Documents\Geomatikk\7_2021H\GMGD320\GMGD320_Group_Task\RINEX_Rounds';
-filename    = '320m3010 .21o';
+Topcon_21   = '21_10_21_50002940.21o';
+Topcon_19   = '19_10_21_50002940.21o';
+Topcon_14   = '14_10_21_50002940.21o';
+Topcon_26   = '14_10_21_50002940.21o';
+Topcon_statisk = '320m3010 .21o';
+Emlid_14 = 'reach_raw_202110141047.21O';
+Emlid_19 = 'reach_raw_202110191050.21O';
+Emlid_21 = 'reach_raw_202110210856.21O';
+Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
 filename = append(pwd, '\RINEX_Rounds\', filename);
 %system = ["Emlid"];
@@ -79,7 +87,9 @@ for k = 1:nGNSSsystems
    %fprintf('\nCurrently showing %s linear combinations\n\n', GNSSnames(sys))
    
    % iterate through epochs for the current GNSS system
-   all_sat = NaN(n_epochs_to_display,32);
+   all_sat_MP1 = NaN(n_epochs_to_display,32);
+   all_sat_MP2 = NaN(n_epochs_to_display,32);
+
    fasebrudd = zeros(n_epochs_to_display,32);
    for epoch =1:n_epochs_to_display
       % get number of sat for current GNSS system that have observations
@@ -114,12 +124,12 @@ for k = 1:nGNSSsystems
             IOD = (alfa/(alfa-1))*(phase1 - phase2); 
             % Multipath + Bias
             Mp1 = code1 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;
-            Mp2 = code2 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;                     
+            Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                     
+            all_sat_MP1(epoch,SV) = Mp1;
+            all_sat_MP2(epoch,SV) = Mp2;
+            fasebrudd(epoch, SV) = IOD;
+         end 
            
-         end
-        
-         all_sat(epoch,SV) = Mp1;
-         fasebrudd(epoch, SV) = IOD; 
       end
       
    end
@@ -143,17 +153,20 @@ end
 index = sortrows(index,1);
 [n, m] =size(index);
 
-mean_table = [index(1,1),1,index(1,2),mean(all_sat(1:index(1,2),index(1,1)))];
+mean_table_MP1 = [index(1,1),1,index(1,2),mean(all_sat_MP1(1:index(1,2),index(1,1)))];
+mean_table_MP2 = [index(1,1),1,index(1,2),mean(all_sat_MP1(1:index(1,2),index(1,1)))];
 
 for k = 1:n-1
     % Ser om det er mer enn ett fasebrudd, beregner kun gjennomsnitt mellom
     % fasebruudd
     if k > 1 && (index(k,1) == index(k+1,1)) && (index(k,1) ~= index(k-1,1))
-        mean_table = [mean_table;index(k,1),1,index(k,2),mean(all_sat(1:index(k,2),index(k,1)),'omitnan')]; 
-    
+        mean_table_MP1 = [mean_table_MP1;index(k,1),1,index(k,2),mean(all_sat_MP1(1:index(k,2),index(k,1)),'omitnan')]; 
+        mean_table_MP2 = [mean_table_MP2;index(k,1),1,index(k,2),mean(all_sat_MP2(1:index(k,2),index(k,1)),'omitnan')]; 
+
     end
     if (index(k,1) == index(k+1,1))  
-        mean_table = [mean_table;index(k,1),index(k,2),index(k+1,2),mean(all_sat(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
+        mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),index(k+1,2),mean(all_sat_MP1(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
+        mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),index(k+1,2),mean(all_sat_MP2(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
         %disp(index(k,1))
         %disp(index(k,2))
         %disp(index(k+1,2))
@@ -161,28 +174,39 @@ for k = 1:n-1
         %disp("--------------------------------------------------")
      % Om det kun er et fasebrud isf. Beregne det et gjennomsnitt for hele serien
     elseif (index(k,1) ~= index(k+1,1))
-          mean_table = [mean_table;index(k,1),index(k,2),nepochs,mean(all_sat(index(k,2):nepochs,index(k,1)),'omitnan')]; 
+          mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),nepochs,mean(all_sat_MP1(index(k,2):nepochs,index(k,1)),'omitnan')]; 
+          mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),nepochs,mean(all_sat_MP2(index(k,2):nepochs,index(k,1)),'omitnan')]; 
+
     end
-    
 end
     
  
 % Fjerner Bias fra MP (MP-Bias)    
-[m,n] = size(mean_table);
-real_MP = all_sat;
+[m,n] = size(mean_table_MP1);
+real_MP1 = all_sat_MP1;
+real_MP2 = all_sat_MP2;
 for i = 1:m
-    real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1)) = abs(real_MP(mean_table(i,2):mean_table(i,3),mean_table(i,1))) - abs(mean_table(i,4));
+    real_MP1(mean_table_MP1(i,2):mean_table_MP1(i,3),mean_table_MP1(i,1)) = (real_MP1(mean_table_MP1(i,2):mean_table_MP1(i,3),mean_table_MP1(i,1))) - (mean_table_MP1(i,4));
+    real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1)) = (real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1))) - (mean_table_MP2(i,4));
 end
     
 % Fjerner alle kolonner med kun "NaN" verdier
-real_MP = real_MP(:,~all(isnan(real_MP)));
+real_MP1 = real_MP1(:,~all(isnan(real_MP1)));
+real_MP2 = real_MP2(:,~all(isnan(real_MP2)));
 
 % Plot
-[m, n] = size(real_MP);
+[m, n] = size(real_MP1);
+[m, n] = size(real_MP2);
 
 % Test
+figure
 for i = 1:n
-    plot(real_MP(:, i))
+    plot(real_MP1(:, i))
+    hold on
+end
+figure
+for i = 1:n
+    plot(real_MP2(:, i))
     hold on
 end
 
