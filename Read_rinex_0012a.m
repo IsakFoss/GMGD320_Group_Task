@@ -6,7 +6,7 @@
 %%
 % Store current directory
 current_dir = pwd;
-
+clear all
 %readRinexObs304_dirpath = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\MATLAB\GNSS_reading_protocol\readRinexObs304\readRinexObs304_sourcecode";
 
 %data dir relative to readRinexObs304_dirpath 
@@ -22,7 +22,7 @@ Emlid_19 = 'reach_raw_202110191050.21O';
 Emlid_21 = 'reach_raw_202110210856.21O';
 Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
-filename = append(pwd, '\RINEX_Rounds\', Topcon_14);
+filename = append(pwd, '\RINEX_Rounds\', Emlid_statisk);
 Topcon = "21o";
 if contains(filename,Topcon) == 1
     system = "Topcon";
@@ -121,22 +121,22 @@ for k = 1:nGNSSsystems
          % get code observations (m)
          code1 = GNSS_obs{sysIndex}(SV, code1_index, epoch);
          code2 = GNSS_obs{sysIndex}(SV, code2_index, epoch);
-         
-         %check that none of the phase obs are missing
          if ~any([phase1, phase2] == 0)
-             
-            % Fasebruddindikator
+              % Fasebruddindikator
             IOD = (alfa/(alfa-1))*(phase1 - phase2); 
-            % Multipath + Bias
-            Mp1 = code1 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;
-            Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                     
-            all_sat_MP1(epoch,SV) = Mp1;
-            all_sat_MP2(epoch,SV) = Mp2;
             fasebrudd(epoch, SV) = IOD;
+         end
+         %check that none of the phase obs are missing
+         if ~any([phase1, phase2, code1] == 0)
+            % Multipath + Bias
+            Mp1 = code1 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;                   
+            all_sat_MP1(epoch,SV) = Mp1;
          end 
-           
+         if ~any([phase1, phase2, code2] == 0)
+            Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                      
+            all_sat_MP2(epoch,SV) = Mp2;
+         end   
       end
-      
    end
 end
 
@@ -144,47 +144,44 @@ end
 [m,n] = size(fasebrudd);
 d = [];
 index = [];
-for i = 2:m
+for i = 1:m-1
     for j = 1:n
-        d(i,j) = fasebrudd(i,j);
-        dis = d(i,j) - d(i-1, j);
-        
-        if abs(dis)  > 4/60
+        d2 = fasebrudd(i+1,j);
+        d = fasebrudd(i,j);
+        dis = d2 - d;
+        if abs(dis)  > 4/60 || (dis ~= 0 && i == 1)
             index = [index;j,i];
-                    
+            %index = [index;j,i+1];
+        elseif abs(dis)  < 4/60 && (dis ~= 0 && i+1 == nepochs)
+            index = [index;j,i+1];
+            %index = [index;j,i+1];
         end
     end
 end  
 index = sortrows(index,1);
 [n, m] =size(index);
 
-mean_table_MP1 = [index(1,1),1,index(1,2),mean(all_sat_MP1(1:index(1,2),index(1,1)))];
-mean_table_MP2 = [index(1,1),1,index(1,2),mean(all_sat_MP1(1:index(1,2),index(1,1)))];
-
+mean_table_MP1 = [];
+mean_table_MP2 = [];
 for k = 1:n-1
-    % Ser om det er mer enn ett fasebrudd, beregner kun gjennomsnitt mellom
-    % fasebruudd
-    if k > 1 && (index(k,1) == index(k+1,1)) && (index(k,1) ~= index(k-1,1))
-        mean_table_MP1 = [mean_table_MP1;index(k,1),1,index(k,2),mean(all_sat_MP1(1:index(k,2),index(k,1)),'omitnan')]; 
-        mean_table_MP2 = [mean_table_MP2;index(k,1),1,index(k,2),mean(all_sat_MP2(1:index(k,2),index(k,1)),'omitnan')]; 
-
-    end
-    if (index(k,1) == index(k+1,1))  
-        mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),index(k+1,2),mean(all_sat_MP1(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
-        mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),index(k+1,2),mean(all_sat_MP2(index(k,2):index(k+1,2),index(k,1)),'omitnan')];
-        %disp(index(k,1))
-        %disp(index(k,2))
-        %disp(index(k+1,2))
-       % disp(mean(all_sat(index(k,2):index(k+1,2),index(k,1)),'omitnan'))
-        %disp("--------------------------------------------------")
-     % Om det kun er et fasebrud isf. Beregne det et gjennomsnitt for hele serien
-    elseif (index(k,1) ~= index(k+1,1))
-          mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),nepochs,mean(all_sat_MP1(index(k,2):nepochs,index(k,1)),'omitnan')]; 
-          mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),nepochs,mean(all_sat_MP2(index(k,2):nepochs,index(k,1)),'omitnan')]; 
-
+    if (index(k,1) == index(k+1,1))% && index(k,2) ~= 1   %&& (k+2 < m && isnan(all_sat_MP1(index(k+2,1),index(k+2,2))) == 1)
+        mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP1(index(k,2):(index(k+1,2)),index(k,1)),'omitnan')];
+        mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP2(index(k,2):(index(k+1,2)),index(k,1)),'omitnan')];
     end
 end
-    
+
+mean_table_MP1( any( isnan(mean_table_MP1), 2 ), : ) = [];
+mean_table_MP2( any( isnan(mean_table_MP2), 2 ), : ) = [];
+[m,n] = size(mean_table_MP1);
+for k = 1:m-1
+    if mean_table_MP1(k+1,2) == mean_table_MP1(k,3)
+        mean_table_MP1(k+1,2) = mean_table_MP1(k+1,2)+1;
+    end
+    if mean_table_MP2(k+1,2) == mean_table_MP2(k,3) 
+        mean_table_MP2(k+1,2) = mean_table_MP2(k+1,2)+1;
+    end
+end
+
  
 % Fjerner Bias fra MP (MP-Bias)    
 [m,n] = size(mean_table_MP1);
@@ -196,26 +193,49 @@ for i = 1:m
 end
     
 % Fjerner alle kolonner med kun "NaN" verdier
-real_MP1 = real_MP1(:,~all(isnan(real_MP1)));
-real_MP2 = real_MP2(:,~all(isnan(real_MP2)));
+%real_MP1 = real_MP1(:,~all(isnan(real_MP1)));
+%real_MP2 = real_MP2(:,~all(isnan(real_MP2)));
 
 % Plot
 [m, n] = size(real_MP1);
 [m, n] = size(real_MP2);
 
 % Test
-figure
+
+MP1 = figure;
 for i = 1:n
     plot(real_MP1(:, i))
     hold on
 end
-figure
+[row,kolonne] =  size(mean_table_MP1);
+mean_value = mean(mean_table_MP1(1:row,kolonne),'omitnan');
+tekst = [system, 'Multipath for ionospheric free linear combination 1 with the mean value of', mean_value, 'm'];
+title(tekst);
+ylim([-10 10]);
+xlim([-5 7700]);
+xlabel('Epochs') 
+ylabel('Noise(meters)') 
+filnavn = append(system,'_MP1.png');
+exportgraphics(MP1,filnavn)
+MP2 = figure;
 for i = 1:n
     plot(real_MP2(:, i))
     hold on
+    
 end
-
+[row,kolonne] =  size(mean_table_MP2);
+mean_value = mean(mean_table_MP2(1:row,kolonne),'omitnan');
+tekst = [system, 'Multipath for ionospheric free linear combination 2 with the mean value of', mean_value, 'm'];
+title(tekst);
+ylim([-10 10]);
+xlim([-5 7700]);
+xlabel('Epochs') 
+ylabel('Noise(meters)')
+filnavn = append(system,'_MP2.png');
+exportgraphics(MP2,filnavn)
 %plot(real_MP(:,4))
+
+
 
 
 
