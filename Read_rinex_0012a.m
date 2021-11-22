@@ -178,8 +178,8 @@ mean_table_MP1 = [];
 mean_table_MP2 = [];
 for k = 1:n-1
     if (index(k,1) == index(k+1,1))% && index(k,2) ~= 1   %&& (k+2 < m && isnan(all_sat_MP1(index(k+2,1),index(k+2,2))) == 1)
-        mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP1(index(k,2):(index(k+1,2)),index(k,1)),'omitnan')];
-        mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP2(index(k,2):(index(k+1,2)),index(k,1)),'omitnan')];
+        mean_table_MP1 = [mean_table_MP1;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP1(index(k,2)+1:(index(k+1,2)),index(k,1)),'omitnan')];
+        mean_table_MP2 = [mean_table_MP2;index(k,1),index(k,2),(index(k+1,2)),mean(all_sat_MP2(index(k,2)+1:(index(k+1,2)),index(k,1)),'omitnan')];
     end
 end
 
@@ -189,6 +189,7 @@ mean_table_MP2( any( isnan(mean_table_MP2), 2 ), : ) = [];
 for k = 1:m-1
     if mean_table_MP1(k+1,2) == mean_table_MP1(k,3)
         mean_table_MP1(k+1,2) = mean_table_MP1(k+1,2)+1;
+        %mean_table_MP1(k+1,4) = mean(all_sat_MP1(index(k+1,2)+1:(index(k+2,2)),index(k,1)),'omitnan');
     end
     if mean_table_MP2(k+1,2) == mean_table_MP2(k,3) 
         mean_table_MP2(k+1,2) = mean_table_MP2(k+1,2)+1;
@@ -221,7 +222,7 @@ for i = 1:n
     hold on
 end
 [row,kolonne] =  size(mean_table_MP1);
-mean_value = mean(abs(mean_table_MP1(1:row,kolonne)),'omitnan');
+mean_value = mean((mean_table_MP1(1:row,kolonne)),'omitnan');
 tekst = [system, 'Multipath for ionospheric free linear combination 1 with the mean value of', mean_value, 'm'];
 title(tekst);
 ylim([-10 10]);
@@ -237,7 +238,7 @@ for i = 1:n
     
 end
 [row,kolonne] =  size(mean_table_MP2);
-mean_value = mean(abs(mean_table_MP2(1:row,kolonne)),'omitnan');
+mean_value = mean((mean_table_MP2(1:row,kolonne)),'omitnan');
 tekst = [system, 'Multipath for ionospheric free linear combination 2 with the mean value of', mean_value, 'm'];
 title(tekst);
 ylim([-10 10]);
@@ -250,11 +251,43 @@ exportgraphics(MP2,filnavn)
 
 [row,kolonne] =  size(mean_table_MP1);
 bias = figure
+satelites = unique(mean_table_MP1(:,1));
+[nr_sat,m] = size(satelites)
+bias_table_MP1 = zeros(31,3);
+bias_table_MP2 = zeros(31,3);
+
 for k = 1:row
-    nj = mean_table_MP1(k,2)-mean_table_MP1(k,1);
-    ni = mean_table_MP1(k,2)-mean_table_MP1(k,1)
+    bias_table_MP1(mean_table_MP1(k,1),:) = [mean_table_MP1(k,1),bias_table_MP1(mean_table_MP1(k,1),2)+ mean_table_MP1(k,3)-mean_table_MP1(k,2),bias_table_MP1(mean_table_MP1(k,1),3)+1];
+    bias_table_MP2(mean_table_MP2(k,1),:) = [mean_table_MP2(k,1),bias_table_MP2(mean_table_MP2(k,1),2)+ mean_table_MP2(k,3)-mean_table_MP2(k,2),bias_table_MP2(mean_table_MP2(k,1),3)+1];
 end
+bias_table_MP2 = bias_table_MP2(any(bias_table_MP2,2),:);
+bias_table_MP1 = bias_table_MP1(any(bias_table_MP1,2),:);
 
-sqrt((mean(real_MP1(1,:),'omitnan')^2)/(mean_table_MP1(1,3)-mean_table_MP1(1,2)))
+S_mp1 = [];
+S_mp2 = [];
+sum_mp = []
+for k = 1:nr_sat
 
+    sum_mp1 = sum(real_MP1(:,satelites(k)).^2,'omitnan');
+    sum_mp2 = sum(real_MP2(:,satelites(k)).^2,'omitnan');
+    nevner_mp1 = (bias_table_MP1(k,2)-bias_table_MP1(k,3));
+    nevner_mp2 = (bias_table_MP2(k,2)-bias_table_MP2(k,3));
+    S_mp1 = [S_mp1;satelites(k),sqrt(sum_mp1/nevner_mp1)];
+    S_mp2 = [S_mp2;satelites(k),sqrt(sum_mp2/(nevner_mp2))];
+end 
+S_MP = figure;
+S = [S_mp1(:,2),S_mp2(:,2)];
+h = bar(S_mp1(:,1),S,1);
+tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
+% set 3 display names for the 3 handles
+set(h, {'DisplayName'}, {'MP1','MP2'}')
+% Legend will show names for each color
+legend() 
+title(tekst);
+xlabel('Satelite number') 
+ylabel('standard deviation in meters')
+filnavn = append(system,'_S_MP.png');
+exportgraphics(S_MP,filnavn)
+   
 
+ 
