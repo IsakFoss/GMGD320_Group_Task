@@ -265,22 +265,30 @@ bias_table_MP1 = bias_table_MP1(any(bias_table_MP1,2),:);
 
 S_mp1 = [];
 S_mp2 = [];
-sum_mp = []
+sum_mp = [];
+m_mp1 = []; % mean mp1 
 for k = 1:nr_sat
-
+    
+    rsum_mp1 = sum(abs(real_MP1(:,satelites(k))),'omitnan'); % sum mp1
     sum_mp1 = sum(real_MP1(:,satelites(k)).^2,'omitnan');
     sum_mp2 = sum(real_MP2(:,satelites(k)).^2,'omitnan');
     nevner_mp1 = (bias_table_MP1(k,2)-bias_table_MP1(k,3));
     nevner_mp2 = (bias_table_MP2(k,2)-bias_table_MP2(k,3));
+    m_mp1 = [m_mp1;satelites(k),rsum_mp1/nevner_mp1]; % mean mp1
     S_mp1 = [S_mp1;satelites(k),sqrt(sum_mp1/nevner_mp1)];
     S_mp2 = [S_mp2;satelites(k),sqrt(sum_mp2/(nevner_mp2))];
 end 
 S_MP = figure;
-S = [S_mp1(:,2),S_mp2(:,2)];
+% S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
+S = [S_mp1(:,2),m_mp1(:,2)]; % Tobias kopi... 
 h = bar(S_mp1(:,1),S,1);
-tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
+
+tekst = ['Standard deviation for MP1', system,]; % Tobias
+set(h, {'DisplayName'}, {'MP1','Mean MP1'}') % Tobias
+
+%tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
 % set 3 display names for the 3 handles
-set(h, {'DisplayName'}, {'MP1','MP2'}')
+%set(h, {'DisplayName'}, {'MP1','MP2'}')
 % Legend will show names for each color
 legend() 
 title(tekst);
