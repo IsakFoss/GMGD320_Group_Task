@@ -22,7 +22,7 @@ Emlid_19 = 'reach_raw_202110191050.21O';
 Emlid_21 = 'reach_raw_202110210856.21O';
 Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
-filename = append(pwd, '\RINEX_Rounds\', Emlid_statisk);
+filename = append(pwd, '\RINEX_Rounds\', Topcon_statisk);
 Topcon = "21o";
 if contains(filename,Topcon) == 1
     system = "Topcon";
@@ -135,6 +135,19 @@ for k = 1:nGNSSsystems
          if ~any([phase1, phase2, code2] == 0)
             Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                      
             all_sat_MP2(epoch,SV) = Mp2;
+%          % get code observations (m)
+%          code1 = GNSS_obs{sysIndex}(SV, code1_index, epoch);
+%          code2 = GNSS_obs{sysIndex}(SV, code2_index, epoch);
+%          if ~any([phase1, phase2] == 0)
+%               % Fasebruddindikator
+%             IOD = (alfa/(alfa-1))*(phase1 - phase2); 
+%             fasebrudd(epoch, SV) = IOD;
+%             % Multipath + Bias
+%             Mp1 = code1 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;                   
+%             all_sat_MP1(epoch,SV) = Mp1;
+%             Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                      
+%             all_sat_MP2(epoch,SV) = Mp2;
+           
          end   
       end
    end
@@ -208,7 +221,7 @@ for i = 1:n
     hold on
 end
 [row,kolonne] =  size(mean_table_MP1);
-mean_value = mean(mean_table_MP1(1:row,kolonne),'omitnan');
+mean_value = mean(abs(mean_table_MP1(1:row,kolonne)),'omitnan');
 tekst = [system, 'Multipath for ionospheric free linear combination 1 with the mean value of', mean_value, 'm'];
 title(tekst);
 ylim([-10 10]);
@@ -224,7 +237,7 @@ for i = 1:n
     
 end
 [row,kolonne] =  size(mean_table_MP2);
-mean_value = mean(mean_table_MP2(1:row,kolonne),'omitnan');
+mean_value = mean(abs(mean_table_MP2(1:row,kolonne)),'omitnan');
 tekst = [system, 'Multipath for ionospheric free linear combination 2 with the mean value of', mean_value, 'm'];
 title(tekst);
 ylim([-10 10]);
@@ -235,8 +248,13 @@ filnavn = append(system,'_MP2.png');
 exportgraphics(MP2,filnavn)
 %plot(real_MP(:,4))
 
+[row,kolonne] =  size(mean_table_MP1);
+bias = figure
+for k = 1:row
+    nj = mean_table_MP1(k,2)-mean_table_MP1(k,1);
+    ni = mean_table_MP1(k,2)-mean_table_MP1(k,1)
+end
 
-
-
+sqrt((mean(real_MP1(1,:),'omitnan')^2)/(mean_table_MP1(1,3)-mean_table_MP1(1,2)))
 
 
