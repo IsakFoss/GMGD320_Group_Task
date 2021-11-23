@@ -22,7 +22,7 @@ Emlid_19 = 'reach_raw_202110191050.21O';
 Emlid_21 = 'reach_raw_202110210856.21O';
 Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
-filename = append(pwd, '\RINEX_Rounds\', Topcon_26);
+filename = append(pwd, '\RINEX_Rounds\', Topcon_statisk);
 Topcon = "21o";
 if contains(filename,Topcon) == 1
     system = "Topcon";
