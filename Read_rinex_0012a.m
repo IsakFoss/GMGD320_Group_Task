@@ -6,7 +6,7 @@
 %%
 % Store current directory
 current_dir = pwd;
-clear all
+
 %readRinexObs304_dirpath = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\MATLAB\GNSS_reading_protocol\readRinexObs304\readRinexObs304_sourcecode";
 
 %data dir relative to readRinexObs304_dirpath 
@@ -22,7 +22,7 @@ Emlid_19 = 'reach_raw_202110191050.21O';
 Emlid_21 = 'reach_raw_202110210856.21O';
 Emlid_statisk = 'reach_raw_202110280857.21O';
 %filename    = 'reach_raw_202110210856.21O';
-filename = append(pwd, '\RINEX_Rounds\', Topcon_26);
+filename = append(pwd, '\RINEX_Rounds\', Emlid_statisk);
 Topcon = "21o";
 if contains(filename,Topcon) == 1
     system = "Topcon";
@@ -54,7 +54,7 @@ readSS   = 0;
 if system == "Topcon" % Collects the correct phase and code code for Topcon
     desiredGNSS_systems = ["G"];
     phase1_code = "L1C";
-    phase2_code = "L2W";
+    phase2_code = "L2W"; 
     code1_code  = "C1C";
     code2_code  = "C2W";
 end
@@ -157,11 +157,13 @@ fasebrudd_plot = [];
 [m,n] = size(IOD_indicator);
 for i = 1:m-1
     for j = 1:n
-        d2 = IOD_indicator(i+1,j);
-        d = IOD_indicator(i,j);
+        d2 = abs(IOD_indicator(i+1,j));
+        d = abs(IOD_indicator(i,j));
         dis = d2 - d;
-        if abs(dis)  > 4/60 
-            fasebrudd_plot = [fasebrudd_plot;j,i];
+        if abs(dis)  > 4/60 ||  (isnan(d2) && ~isnan(d))
+            if any(~isnan(all_sat_MP1(i+1:nepochs,j)))
+                fasebrudd_plot = [fasebrudd_plot;j,i];
+            end
         end 
     end
 end 
@@ -172,7 +174,7 @@ for i = 1:m-1
     for j = 1:n
         d2 = fasebrudd(i+1,j);
         d = fasebrudd(i,j);
-        dis = d2 - d;
+        dis = abs(d2) - abs(d);
         if abs(dis)  > 4/60 || (dis ~= 0 && i == 1)
             index = [index;j,i];
             %index = [index;j,i+1];
@@ -332,6 +334,39 @@ ylabel('standard deviation in meters')
 filnavn = append(system,'_S_MP2.png');
 exportgraphics(S_MP,filnavn)
 
-   
 
+% Number of sateliteobservations.
+[n,l] = size(real_MP1);
+i = 0;
+for k = 1:n
+    for j = 1:l
+        if ~isnan(real_MP1(k,j))
+            i = i+1;
+        end
+    end
+end
+[n,j] = size(fasebrudd_plot)
+nr_fasebrudd = zeros(31,2);
+for k = 1:n
+    nr_fasebrudd(fasebrudd_plot(k,1),:) = [fasebrudd_plot(k,1), (nr_fasebrudd(fasebrudd_plot(k,1),2)+1)];
+end
+nr_fasebrudd = nr_fasebrudd(any(nr_fasebrudd,2),:); 
+
+fasebrudd = figure;
+% S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
+h = bar(nr_fasebrudd(:,1),nr_fasebrudd(:,2),1);
+
+tekst = ['Number of phaseshift per satelite'];
+
+%tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
+% set 3 display names for the 3 handles
+%set(h, {'DisplayName'}, {'MP1','MP2'}')
+% Legend will show names for each color
+legend('Phaseshifts') 
+title(tekst);
+xlabel('Satelite number') 
+ylabel('Nr of phaseshifts')
+filnavn = append(system,'_phaseshifts.png');
+exportgraphics(S_MP,filnavn)
+            
  

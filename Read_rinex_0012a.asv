@@ -6,7 +6,7 @@
 %%
 % Store current directory
 current_dir = pwd;
-clear all
+
 %readRinexObs304_dirpath = "C:\Users\tobia\OneDrive\Skrivebord\GMGD320\MATLAB\GNSS_reading_protocol\readRinexObs304\readRinexObs304_sourcecode";
 
 %data dir relative to readRinexObs304_dirpath 
@@ -54,7 +54,7 @@ readSS   = 0;
 if system == "Topcon" % Collects the correct phase and code code for Topcon
     desiredGNSS_systems = ["G"];
     phase1_code = "L1C";
-    phase2_code = "L2W";
+    phase2_code = "L2W"; 
     code1_code  = "C1C";
     code2_code  = "C2W";
 end
@@ -157,11 +157,13 @@ fasebrudd_plot = [];
 [m,n] = size(IOD_indicator);
 for i = 1:m-1
     for j = 1:n
-        d2 = IOD_indicator(i+1,j);
-        d = IOD_indicator(i,j);
+        d2 = abs(IOD_indicator(i+1,j));
+        d = abs(IOD_indicator(i,j));
         dis = d2 - d;
-        if abs(dis)  > 4/60 
-            fasebrudd_plot = [fasebrudd_plot;j,i];
+        if abs(dis)  > 4/60 ||  (isnan(d2) && ~isnan(d))
+            if any(~isnan(all_sat_MP1(i+1:nepochs,j)))
+                fasebrudd_plot = [fasebrudd_plot;j,i];
+            end
         end 
     end
 end 
@@ -172,7 +174,7 @@ for i = 1:m-1
     for j = 1:n
         d2 = fasebrudd(i+1,j);
         d = fasebrudd(i,j);
-        dis = d2 - d;
+        dis = abs(d2) - abs(d);
         if abs(dis)  > 4/60 || (dis ~= 0 && i == 1)
             index = [index;j,i];
             %index = [index;j,i+1];
@@ -332,6 +334,40 @@ ylabel('standard deviation in meters')
 filnavn = append(system,'_S_MP2.png');
 exportgraphics(S_MP,filnavn)
 
-   
 
+% Number of sateliteobservations.
+[n,l] = size(real_MP1);
+i = 0;
+for k = 1:n
+    for j = 1:l
+        if ~isnan(real_MP1(k,j))
+            i = i+1;
+        end
+    end
+end
+[n,j] = size(fasebrudd_plot)
+nr_fasebrudd = [];
+for k = 1:n
+    nr_fasebrudd = [nr_fasebrudd;fasebrudd_plot(k,1), (nr_fasebrudd(fasebrudd_plot(k,1),2)+1)];
+end
+    
+fasebrudd = figure;
+% S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
+S = [S_mp2(:,2),m_mp2(:,2)]; % Tobias kopi... 
+h = bar(S_mp2(:,1),nr_fasebrudd(:,2),1);
+
+tekst = ['Standard deviation for MP2', system,]; % Tobias
+set(h, {'DisplayName'}, {'MP2','Mean MP2'}') % Tobias
+
+%tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
+% set 3 display names for the 3 handles
+%set(h, {'DisplayName'}, {'MP1','MP2'}')
+% Legend will show names for each color
+legend() 
+title(tekst);
+xlabel('Satelite number') 
+ylabel('standard deviation in meters')
+filnavn = append(system,'_S_MP2.png');
+exportgraphics(S_MP,filnavn)
+            
  
