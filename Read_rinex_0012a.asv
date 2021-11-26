@@ -114,7 +114,7 @@ for k = 1:nGNSSsystems
          code1_index  = ismember(obsCodes{sysIndex},code1_code);
          code2_index  = ismember(obsCodes{sysIndex},code2_code);
          
-         % get phaseobservations anf convert from units of cycles to meters
+         % get phaseobservations and convert from units of cycles to meters
          phase1 = GNSS_obs{sysIndex}(SV, phase1_index, epoch)*phase1_wavelength;
          phase2 = GNSS_obs{sysIndex}(SV, phase2_index, epoch)*phase2_wavelength;
          
@@ -136,23 +136,13 @@ for k = 1:nGNSSsystems
          if ~any([phase1, phase2, code2] == 0)
             Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                      
             all_sat_MP2(epoch,SV) = Mp2;
-%          % get code observations (m)
-%          code1 = GNSS_obs{sysIndex}(SV, code1_index, epoch);
-%          code2 = GNSS_obs{sysIndex}(SV, code2_index, epoch);
-%          if ~any([phase1, phase2] == 0)
-%               % Fasebruddindikator
-%             IOD = (alfa/(alfa-1))*(phase1 - phase2); 
-%             fasebrudd(epoch, SV) = IOD;
-%             % Multipath + Bias
-%             Mp1 = code1 - (1 + 2/(alfa-1))*phase1 + (2/(alfa-1))*phase2;                   
-%             all_sat_MP1(epoch,SV) = Mp1;
-%             Mp2 = code2 - (2*alfa/(alfa-1))*phase1 + (2*alfa/(alfa-1)-1)*phase2;                      
-%             all_sat_MP2(epoch,SV) = Mp2;
            
          end   
       end
    end
 end
+% Make the matrix that has only all the phaceshifts, and not other changes.
+% so that you can plot the phaseshifts on its own
 fasebrudd_plot = [];
 [m,n] = size(IOD_indicator);
 for i = 1:m-1
@@ -167,6 +157,10 @@ for i = 1:m-1
         end 
     end
 end 
+
+
+% Make matrix that said if there is changes big enough to be considered as
+% phaseshifts
 [m,n] = size(fasebrudd);
 d = [];
 index = [];
@@ -187,7 +181,8 @@ end
 
 index = sortrows(index,1);
 [n, m] =size(index);
-
+% Mean table is a table that has first element in the phaseperiod
+%[satelite,first element in period, last element, mean value of the period]
 mean_table_MP1 = [];
 mean_table_MP2 = [];
 for k = 1:n-1
@@ -210,7 +205,105 @@ for k = 1:m-1
     end
 end
 
- 
+%% IOD 
+[j,f] = size(mean_table_MP1);
+for k = 1:j
+    IOD_indicator(mean_table_MP1(k,2):mean_table_MP1(k,3),mean_table_MP1(k,1)) = IOD_indicator(mean_table_MP1(k,2):mean_table_MP1(k,3),mean_table_MP1(k,1))- IOD_indicator(mean_table_MP1(k,2),mean_table_MP1(k,1));
+end
+[n,k] = size(IOD_indicator);
+IOD = figure
+satelites = unique(mean_table_MP1(:,1));
+legend_list = append('PRN',string(satelites(:)));
+value = 0;
+for i = 1:k
+    plot(IOD_indicator(:,i))
+    hold on
+end
+tekst = [system, 'Estimated ionospheric delay on the F1 frequensy'];
+title(tekst);
+ylim([-10 10]);
+xlim([0 7700]);
+xlabel('Epochs') 
+x0=10;
+y0=10;
+width=800;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend(legend_list,'Location','southeast','NumColumns',4)
+ylabel('Noise(meters)')
+filnavn = append('IOD_',system,'.png');
+exportgraphics(IOD,filnavn)
+%plot(real_MP(:,4))
+
+%% Plot that shows MP1 and MP2 with just substraction of the first value.
+
+% Fjerner Bias fra MP (MP-Bias)    
+[m,n] = size(mean_table_MP1);
+real_MP1 = all_sat_MP1;
+real_MP2 = all_sat_MP2;
+for i = 1:m
+        real_MP1(mean_table_MP1(i,2):mean_table_MP1(i,3),mean_table_MP1(i,1)) = real_MP1(mean_table_MP1(i,2):mean_table_MP1(i,3),mean_table_MP1(i,1)) - real_MP1(mean_table_MP1(i,2)+1,mean_table_MP1(i,1));
+        real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1)) = real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1)) - real_MP2(mean_table_MP2(i,2)+1,mean_table_MP2(i,1));
+end
+    
+%Fjerner alle kolonner med kun "NaN" verdier til å plotte
+plot_MP1 = real_MP1(:,~all(isnan(real_MP1)));
+plot_MP2 = real_MP2(:,~all(isnan(real_MP2)));
+satelites = unique(mean_table_MP1(:,1));
+legend_list = append('PRN',string(satelites(:)));
+% Plot
+[m, n] = size(plot_MP1);
+[m, n] = size(plot_MP2);
+
+% Test
+
+MP1 = figure;
+for i = 1:n
+    plot(plot_MP1(:, i))
+    hold on
+end
+[row,kolonne] =  size(plot_MP1);
+mean_value = mean(abs(plot_MP1(1:row,kolonne)),'omitnan');
+tekst = [system, 'Estimated multipath on the P1-code(MP1) with substraction of the first element in the phase corrected arc of observations '];
+title(tekst);
+ylim([-10 10]);
+xlim([-5 7700]);
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend(legend_list,'Location','southeast','NumColumns',4)
+xlabel('Epochs') 
+ylabel('Noise(meters)') 
+filnavn = append('MP1_sub_',system,'.png');
+exportgraphics(MP1,filnavn)
+MP2 = figure;
+for i = 1:n
+    plot(plot_MP2(:, i))
+    hold on
+    
+end
+[row,kolonne] =  size(plot_MP2);
+mean_value = mean(abs(plot_MP2(1:row,kolonne)),'omitnan');
+tekst = [system, 'Estimated multipath on the P2-code(MP2) with substraction of the first element in the phase corrected arc of observations '];
+title(tekst);
+ylim([-10 10]);
+xlim([-5 7700]);
+xlabel('Epochs') 
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend(legend_list,'Location','southeast','NumColumns',4)
+ylabel('Noise(meters)')
+filnavn = append('MP2_sub_',system,'.png');
+exportgraphics(MP2,filnavn)
+
+%% Plot that shows MP1 and MP2 with just substraction of the mean value of the phase corrected arc of observations.
+
+
 % Fjerner Bias fra MP (MP-Bias)    
 [m,n] = size(mean_table_MP1);
 real_MP1 = all_sat_MP1;
@@ -236,33 +329,42 @@ for i = 1:n
     plot(plot_MP1(:, i))
     hold on
 end
-[row,kolonne] =  size(mean_table_MP1);
-mean_value = mean((mean_table_MP1(1:row,kolonne)),'omitnan');
-tekst = [system, 'Multipath for ionospheric free linear combination 1 with the mean value of', mean_value, 'm'];
+[row,kolonne] =  size(plot_MP1);
+mean_value = mean(abs(plot_MP1(1:row,kolonne)),'omitnan');
+tekst = [system, 'Estimated multipath on the P1-code(MP1) with with the mean of the phase corrected arc of observations '];
 title(tekst);
 ylim([-10 10]);
 xlim([-5 7700]);
-legend(legend_list)
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend(legend_list,'Location','southeast','NumColumns',4)
 xlabel('Epochs') 
 ylabel('Noise(meters)') 
-filnavn = append(system,'_MP1.png');
+filnavn = append('MP1_',system,'.png');
 exportgraphics(MP1,filnavn)
 MP2 = figure;
 for i = 1:n
     plot(plot_MP2(:, i))
     hold on
-    
 end
-[row,kolonne] =  size(mean_table_MP2);
-mean_value = mean((mean_table_MP2(1:row,kolonne)),'omitnan');
-tekst = [system, 'Multipath for ionospheric free linear combination 2 with the mean value of', mean_value, 'm'];
+[row,kolonne] =  size(plot_MP2);
+mean_value = mean(abs(plot_MP2(1:row,kolonne)),'omitnan');
+tekst = [system, 'Estimated multipath on the P2-code(MP2) with the mean of the phase corrected arc of observations '];
 title(tekst);
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
 ylim([-10 10]);
 xlim([-5 7700]);
 xlabel('Epochs') 
-legend(legend_list)
+legend(legend_list,'Location','southeast','NumColumns',4)
 ylabel('Noise(meters)')
-filnavn = append(system,'_MP2.png');
+filnavn = append('MP2_',system,'.png');
 exportgraphics(MP2,filnavn)
 %plot(real_MP(:,4))
 
@@ -296,44 +398,42 @@ for k = 1:nr_sat
     S_mp1 = [S_mp1;satelites(k),sqrt(sum_mp1/nevner_mp1)];
     S_mp2 = [S_mp2;satelites(k),sqrt(sum_mp2/(nevner_mp2))];
 end 
+
+
+%% Compute the RMS values for MP1 and MP2 
+
 S_MP = figure;
-% S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
-S = [S_mp1(:,2),m_mp1(:,2)]; % Tobias kopi... 
+S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
+%S = [S_mp1(:,2),m_mp1(:,2)]; % Tobias kopi... 
 h = bar(S_mp1(:,1),S,1);
+hold on
+mean_S_mp1 = mean(S_mp1(:,2)) ;
+plot(xlim,[mean_S_mp1 mean_S_mp1])
+hold on
+mean_S_mp2 = mean(S_mp2(:,2)) ;
+plot(xlim,[mean_S_mp2 mean_S_mp2])
 
-tekst = ['Standard deviation for MP1', system,]; % Tobias
-set(h, {'DisplayName'}, {'MP1','Mean MP1'}') % Tobias
-
+tekst = ['RMS value for MP1 and MP2', system,]; % Tobias
+legend_name = {'MP1','MP2','Mean MP1','Mean MP2'};
 %tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
 % set 3 display names for the 3 handles
 %set(h, {'DisplayName'}, {'MP1','MP2'}')
 % Legend will show names for each color
-legend() 
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend(legend_name,'Location','northeast','NumColumns',2)
+
 title(tekst);
 xlabel('Satelite number') 
 ylabel('standard deviation in meters')
-filnavn = append(system,'_S_MP1.png');
+filnavn = append('S_MP_',system,'.png');
+
 exportgraphics(S_MP,filnavn)
 
-S_MP = figure;
-% S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
-S = [S_mp2(:,2),m_mp2(:,2)]; % Tobias kopi... 
-h = bar(S_mp2(:,1),S,1);
-
-tekst = ['Standard deviation for MP2', system,]; % Tobias
-set(h, {'DisplayName'}, {'MP2','Mean MP2'}') % Tobias
-
-%tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
-% set 3 display names for the 3 handles
-%set(h, {'DisplayName'}, {'MP1','MP2'}')
-% Legend will show names for each color
-legend() 
-title(tekst);
-xlabel('Satelite number') 
-ylabel('standard deviation in meters')
-filnavn = append(system,'_S_MP2.png');
-exportgraphics(S_MP,filnavn)
-
+%% Information on the detected phase-breach
 
 % Number of sateliteobservations.
 [n,l] = size(real_MP1);
@@ -346,28 +446,30 @@ for k = 1:n
     end
 end
 [n,j] = size(fasebrudd_plot)
-nr_fasebrudd = [];
+nr_fasebrudd = zeros(31,2);
 for k = 1:n
-    nr_fasebrudd = [nr_fasebrudd;fasebrudd_plot(k,1), (nr_fasebrudd(fasebrudd_plot(k,1),2)+1)];
+    nr_fasebrudd(fasebrudd_plot(k,1),:) = [fasebrudd_plot(k,1), (nr_fasebrudd(fasebrudd_plot(k,1),2)+1)];
 end
-    
+nr_fasebrudd = nr_fasebrudd(any(nr_fasebrudd,2),:); 
+
 fasebrudd = figure;
 % S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
-S = [S_mp2(:,2),m_mp2(:,2)]; % Tobias kopi... 
-h = bar(S_mp2(:,1),nr_fasebrudd(:,2),1);
+h = bar(nr_fasebrudd(:,1),nr_fasebrudd(:,2),1);
 
-tekst = ['Standard deviation for MP2', system,]; % Tobias
-set(h, {'DisplayName'}, {'MP2','Mean MP2'}') % Tobias
+tekst = ['Number of phaseshift per satelite'];
 
 %tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
 % set 3 display names for the 3 handles
 %set(h, {'DisplayName'}, {'MP1','MP2'}')
 % Legend will show names for each color
-legend() 
+x0=10;
+y0=10;
+width=1200;
+height=500;
+set(gcf,'position',[x0,y0,width,height])
+legend('Phaseshifts','Location','northwest','NumColumns',2)
 title(tekst);
 xlabel('Satelite number') 
-ylabel('standard deviation in meters')
-filnavn = append(system,'_S_MP2.png');
-exportgraphics(S_MP,filnavn)
-            
- 
+ylabel('Nr of phaseshifts')
+filnavn = append('phaseshifts_',system,'.png');
+exportgraphics(fasebrudd,filnavn)
