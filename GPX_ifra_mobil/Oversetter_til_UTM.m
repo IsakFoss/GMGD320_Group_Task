@@ -5,16 +5,18 @@ for i = 1:length(filenames)
     GPX_format_table = readtable(filename);
     GPX_format = [GPX_format_table.Var1, GPX_format_table.Var2, GPX_format_table.Var3];
 
-    [x,y,utmzone] = deg2utm(GPX_format_table.Var1,GPX_format_table.Var2);
+    [x,y,utmzone] = deg2utm(GPX_format_table.Var2,GPX_format_table.Var1);
 
     split_filename = split(filename,"_");
     filename_dato = split_filename{1};
-    dato = datetime(filename_dato,'InputFormat','yyyyMMdd')
+    dato = datetime(filename_dato,'InputFormat','yyyyMMdd');
     doy = day(dato,'dayofyear');
     current_year = year(dato);
     GPStime = current_year + doy/365;
 
     new_filename = filename_dato+".fri";
+    
+    utmzone
 
     fileID = fopen(new_filename,'wt');
     fprintf(fileID,'#PKT01 6615572.625   600117.213   136.039   2020/11/11\n');
