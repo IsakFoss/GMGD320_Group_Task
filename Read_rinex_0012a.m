@@ -383,8 +383,13 @@ end
 bias_table_MP2 = bias_table_MP2(any(bias_table_MP2,2),:);
 bias_table_MP1 = bias_table_MP1(any(bias_table_MP1,2),:);
 
-S_mp1 = [];
-S_mp2 = [];
+
+cycle slip
+
+%% Compute the RMS values for MP1 and MP2 
+
+RMS_mp1 = [];
+RMS_mp2 = [];
 sum_mp = [];
 m_mp1 = []; % mean mp1 
 m_mp2 = []; % mean mp1 
@@ -398,26 +403,24 @@ for k = 1:nr_sat
     nevner_mp2 = (bias_table_MP2(k,2)-bias_table_MP2(k,3));
     m_mp1 = [m_mp1;satelites(k),rsum_mp1/nevner_mp1]; % mean mp1
     m_mp2 = [m_mp2;satelites(k),rsum_mp2/nevner_mp2]; % mean mp2
-    S_mp1 = [S_mp1;satelites(k),sqrt(sum_mp1/nevner_mp1)];
-    S_mp2 = [S_mp2;satelites(k),sqrt(sum_mp2/(nevner_mp2))];
+    RMS_mp1 = [RMS_mp1;satelites(k),sqrt(sum_mp1/nevner_mp1)];
+    RMS_mp2 = [RMS_mp2;satelites(k),sqrt(sum_mp2/(nevner_mp2))];
 end 
 
 
-%% Compute the RMS values for MP1 and MP2 
-
-S_MP = figure;
-S = [S_mp1(:,2),S_mp2(:,2)]; % Isak orginal
+RMS_MP = figure;
+RMS = [RMS_mp1(:,2),RMS_mp2(:,2)]; % Isak orginal
 %S = [S_mp1(:,2),m_mp1(:,2)]; % Tobias kopi... 
-h = bar(S_mp1(:,1),S,1);
+h = bar(RMS_mp1(:,1),RMS,1);
 hold on
-mean_S_mp1 = mean(S_mp1(:,2)) ;
-plot(xlim,[mean_S_mp1 mean_S_mp1])
+mean_RMS_mp1 = mean(RMS_mp1(:,2)) ;
+plot(xlim,[mean_RMS_mp1 mean_RMS_mp1])
 hold on
-mean_S_mp2 = mean(S_mp2(:,2)) ;
-plot(xlim,[mean_S_mp2 mean_S_mp2])
+mean_RMS_mp2 = mean(RMS_mp2(:,2)) ;
+plot(xlim,[mean_RMS_mp2 mean_RMS_mp2])
 
 tekst = ['RMS value for MP1 and MP2', system,]; 
-legend_name = {'MP1','MP2','Mean MP1','Mean MP2'};
+legend_name = {'MP1','MP2','Mean RMS:MP1','Mean RMS:MP2'};
 %tekst = ['Standard deviation for MP1 and MP2, for ', system,'mean MP1', mean(S_mp1(:,2)),'mean MP2', mean(S_mp2(:,2))];
 % set 3 display names for the 3 handles
 %set(h, {'DisplayName'}, {'MP1','MP2'}')
@@ -431,10 +434,10 @@ legend(legend_name,'Location','northeast','NumColumns',2)
 
 title(tekst);
 xlabel('Satelite number') 
-ylabel('standard deviation in meters')
+ylabel('RMS values in meter')
 filnavn = append('S_MP_',system,'.png');
 
-exportgraphics(S_MP,filnavn)
+exportgraphics(RMS_MP,filnavn)
 
 %% Information on the detected phase-breach
 
