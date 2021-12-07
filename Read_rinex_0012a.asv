@@ -201,6 +201,7 @@ mean_table_MP2( any( isnan(mean_table_MP2), 2 ), : ) = [];
 for k = 1:m-1
     if mean_table_MP1(k+1,2) == mean_table_MP1(k,3)
         mean_table_MP1(k+1,2) = mean_table_MP1(k+1,2)+1;
+        %mean_table_MP1(k+1,4) = mean(all_sat_MP1(index(k+1,2)+1:(index(k+2,2)),index(k,1)),'omitnan');
     end
     if mean_table_MP2(k+1,2) == mean_table_MP2(k,3) 
         mean_table_MP2(k+1,2) = mean_table_MP2(k+1,2)+1;
@@ -208,7 +209,6 @@ for k = 1:m-1
 end
 
 %% IOD 
-% This codesnipped plots the Ionospheric delay over time.
 [j,f] = size(mean_table_MP1);
 for k = 1:j
     IOD_indicator(mean_table_MP1(k,2):mean_table_MP1(k,3),mean_table_MP1(k,1)) = IOD_indicator(mean_table_MP1(k,2):mean_table_MP1(k,3),mean_table_MP1(k,1))- IOD_indicator(mean_table_MP1(k,2),mean_table_MP1(k,1));
@@ -306,9 +306,10 @@ ylabel('Noise(meters)')
 filnavn = append('MP2_sub_',system,'.png');
 exportgraphics(MP2,filnavn)
 
-%% Plot that shows MP1 and MP2 with substraction of the mean value of the phase corrected arc of observations.
+%% Plot that shows MP1 and MP2 with just substraction of the mean value of the phase corrected arc of observations.
 
-% Remove bias from MP (MP-Bias)    
+
+% Fjerner Bias fra MP (MP-Bias)    
 [m,n] = size(mean_table_MP1);
 real_MP1 = all_sat_MP1;
 real_MP2 = all_sat_MP2;
@@ -317,7 +318,7 @@ for i = 1:m
     real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1)) = (real_MP2(mean_table_MP2(i,2):mean_table_MP2(i,3),mean_table_MP2(i,1))) - (mean_table_MP2(i,4));
 end
     
-% Removes all coloumns with only "NaN" values
+%Fjerner alle kolonner med kun "NaN" verdier til å plotte
 plot_MP1 = real_MP1(:,~all(isnan(real_MP1)));
 plot_MP2 = real_MP2(:,~all(isnan(real_MP2)));
 satelites = unique(mean_table_MP1(:,1));
@@ -326,6 +327,7 @@ legend_list = append('PRN',string(satelites(:)));
 [m, n] = size(plot_MP1);
 [m, n] = size(plot_MP2);
 
+% Test
 
 MP1 = figure;
 for i = 1:n
@@ -369,6 +371,7 @@ legend(legend_list,'Location','southeast','NumColumns',4)
 ylabel('Noise(meters)')
 filnavn = append('MP2_',system,'.png');
 exportgraphics(MP2,filnavn)
+%plot(real_MP(:,4))
 
 [row,kolonne] =  size(mean_table_MP1);
 [nr_sat,m] = size(satelites)
